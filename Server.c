@@ -93,7 +93,7 @@ void signalHandler()
 	exit(1);
 }
 
-int clientHandler(int clientFd, void *arg)
+void* clientHandler(int clientFd, void *react)
 {
 	char buffer[BUFFER_SIZE] = {0};
 
@@ -105,20 +105,38 @@ int clientHandler(int clientFd, void *arg)
 
 	total_bytes += nbytes;
 
-	buffer[nbytes] = '\0';
+	// Make sure the buffer is null-terminated, so we can print it.
+	if (nbytes < BUFFER_SIZE)
+		buffer[nbytes] = '\0';
 
+	else
+		buffer[BUFFER_SIZE - 1] = '\0';
+
+	// Remove the arrow keys from the buffer, as they are not printable and mess up the output.
+	// And replace them with spaces, so the rest of the message won't cut off.
+	for (int i = 0; i < nbytes - 3; i++)
+	{
+		if ((buffer[i] == 0x1b) && (buffer[i + 1] == 0x5b) && (buffer[i + 2] == 0x41 || buffer[i + 2] == 0x42 || buffer[i + 2] == 0x43 || buffer[i + 2] == 0x44))
+		{
+			buffer[i] = 0x20;
+			buffer[i + 1] = 0x20;
+			buffer[i + 2] = 0x20;
+
+			i += 2;
+		}
+	}
 	fprintf(stdout, "Client %d: %s\n", clientFd, buffer);
 
-	return 0;
+	return react;
 
 }
 
-int serverHandler(int serverFd, void *arg)
+void* serverHandler(int serverFd, void *react)
 {
 	struct sockaddr_in clientAddress = {0};
 	socklen_t len_clientAddress = sizeof(clientAddress);
 
-	preactor reactor = (preactor)arg;
+	preactor reactor = (preactor)react;
 
 	if (reactor == NULL)
 	{
@@ -142,5 +160,5 @@ int serverHandler(int serverFd, void *arg)
 
 	fprintf(stdout, "Client %s : %d connected, ID: %d.\n", inet_ntoa(clientAddress.sin_addr), ntohs(clientAddress.sin_port), clientFd);
 
-	return 0;
+	return react;
 }

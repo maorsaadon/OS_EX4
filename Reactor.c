@@ -208,6 +208,7 @@ void addFd(void *thisReactor, int fd, handler_t handler)
 	*fdcpy = fd;
 	// add fd to hashmap
 	hashmap_set(reactor->FDtoFunction, fdcpy, sizeof(int), (uintptr_t)handler);
+	fprintf(stdout, "addFd() success.\n");
 }
 
 void WaitFor(void *thisReactor)
