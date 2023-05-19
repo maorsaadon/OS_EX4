@@ -21,6 +21,7 @@ void *createReactor()
 		free(react);
 		exit(-1);
 	}
+
 	// hashmap
 	react->FDtoFunction = hashmap_create();
 	if (!react->FDtoFunction)
@@ -28,6 +29,7 @@ void *createReactor()
 		free(react->pfds);
 		free(react);
 		printf("hashmap_create() failed\n");
+		exit(-1);
 	}
 
 	fprintf(stdout, "Reactor created.\n");
@@ -90,47 +92,6 @@ void *reactorRun(void *thisReactor)
 	return reactor;
 }
 
-// void *reactorRun(void *thisReactor)
-// {
-// 	if (thisReactor == NULL)
-// 	{
-// 		perror("reactorRun() failed");
-// 		exit(-1);
-// 	}
-
-// 	preactor reactor = (preactor)thisReactor;
-
-// 	while (reactor->hot)
-// 	{
-// 		if (poll(reactor->pfds, reactor->clients_counter, 1000) == -1)
-// 		{
-// 			perror("poll() failed");
-// 			exit(-1);
-// 		}
-
-// 		for (size_t i = 0; i < reactor->clients_counter; i++)
-// 		{
-// 			uintptr_t function;
-// 			if (reactor->pfds[i].revents & POLLIN)
-// 			{
-// 				// calling hashmap function
-// 				if (!hashmap_get(reactor->FDtoFunction, &reactor->pfds[i].fd, sizeof(int), &function))
-// 				{
-// 					printf("hashmap_get() failed\n");
-// 					continue;
-// 				}
-
-// 				handler_t handler = (handler_t)function;
-// 				handler(reactor->pfds[i].fd, reactor);
-// 			}
-// 		}
-// 	}
-
-// 	fprintf(stdout, "Reactor thread finished.\n");
-
-// 	return reactor;
-// }
-
 void startReactor(void *thisReactor)
 {
 	if (thisReactor == NULL)
@@ -149,6 +110,7 @@ void startReactor(void *thisReactor)
 		if (pthread_create(&react->thread, NULL, reactorRun, thisReactor) != 0)
 		{
 			perror("pthread_create() failed");
+			exit(-1);
 		}
 		fprintf(stdout, "Reactor thread started.\n");
 	}
@@ -169,10 +131,7 @@ void stopReactor(void *thisReactor)
 	reactor->hot = false;
 
 	pthread_cancel(reactor->thread);
-
 	pthread_join(reactor->thread, NULL);
-
-	pthread_detach(reactor->thread);
 
 	fprintf(stdout, "Reactor thread stopped and detached.\n");
 }
@@ -204,10 +163,12 @@ void addFd(void *thisReactor, int fd, handler_t handler)
 	reactor->pfds[reactor->clients_counter].fd = fd;
 	reactor->pfds[reactor->clients_counter].events = POLLIN;
 	reactor->clients_counter++;
+
 	int *fdcpy = (int *)malloc(sizeof(int));
 	*fdcpy = fd;
 	// add fd to hashmap
 	hashmap_set(reactor->FDtoFunction, fdcpy, sizeof(int), (uintptr_t)handler);
+
 	fprintf(stdout, "addFd() success.\n");
 }
 

@@ -7,7 +7,6 @@ int total_bytes = 0;
 
 int main(void)
 {
-
 	signal(SIGINT, signalHandler);
 
 	// Create socket
@@ -86,14 +85,15 @@ void signalHandler()
 		// free reactor
 		free(reactor);
 	}
-
 	else
+	{
 		fprintf(stdout, "Reactor wasn't created, no memory cleanup needed.\n");
+	}
 
 	exit(1);
 }
 
-void* clientHandler(int clientFd, void *react)
+void *clientHandler(int clientFd, void *react)
 {
 	char buffer[BUFFER_SIZE] = {0};
 
@@ -108,7 +108,6 @@ void* clientHandler(int clientFd, void *react)
 	// Make sure the buffer is null-terminated, so we can print it.
 	if (nbytes < BUFFER_SIZE)
 		buffer[nbytes] = '\0';
-
 	else
 		buffer[BUFFER_SIZE - 1] = '\0';
 
@@ -125,13 +124,13 @@ void* clientHandler(int clientFd, void *react)
 			i += 2;
 		}
 	}
+
 	fprintf(stdout, "Client %d: %s\n", clientFd, buffer);
 
 	return react;
-
 }
 
-void* serverHandler(int serverFd, void *react)
+void *serverHandler(int serverFd, void *react)
 {
 	struct sockaddr_in clientAddress = {0};
 	socklen_t len_clientAddress = sizeof(clientAddress);
@@ -152,7 +151,9 @@ void* serverHandler(int serverFd, void *react)
 		exit(-1);
 	}
 	else
+	{
 		printf("A new client connection accepted\n");
+	}
 
 	addFd(reactor, clientFd, clientHandler);
 
