@@ -1,7 +1,7 @@
 #include "Reactor.h"
 
 // The reactor pointer.
-void *this = NULL;
+void *thisReactor = NULL;
 int client_count = 0;
 int total_bytes = 0;
 
@@ -48,20 +48,20 @@ int main(void)
 
 	fprintf(stdout, "Server listening on port %d\n", PORT);
 
-	this = createReactor();
+	thisReactor = createReactor();
 
-	if (this == NULL)
+	if (thisReactor == NULL)
 	{
 		perror("createReactor() failed");
 		exit(-1);
 	}
 
 	fprintf(stdout, "Adding server socket to reactor...\n");
-	addFd(this, serverFd, serverHandler);
+	addFd(thisReactor, serverFd, serverHandler);
 	fprintf(stdout, "Server socket added to reactor.\n");
 
-	startReactor(this);
-	WaitFor(this);
+	startReactor(thisReactor);
+	WaitFor(thisReactor);
 	signalHandler();
 
 	return 0;
@@ -71,13 +71,13 @@ void signalHandler()
 {
 	fprintf(stdout, "Server shutting down...\n");
 
-	if (this != NULL)
+	if (thisReactor != NULL)
 	{
-		stopReactor(this);
+		stopReactor(thisReactor);
 
 		fprintf(stdout, "Closing all sockets and freeing memory...\n");
 
-		preactor reactor = (preactor)this;
+		preactor reactor = (preactor)thisReactor;
 
 		// free the hashmap
 		hashmap_iterate(reactor->FDtoFunction, free_entry, NULL);
@@ -88,9 +88,6 @@ void signalHandler()
 
 		// free reactor
 		free(reactor);
-
-		fprintf(stdout, "Client count in this session: %d.\n", client_count);
-		fprintf(stdout, "Total bytes received in this session: %llu bytes (%llu KB).\n", total_bytes, total_bytes / 1024);
 	}
 
 	else

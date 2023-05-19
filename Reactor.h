@@ -37,10 +37,10 @@ typedef struct reactor
 } reactor, *preactor;
 
 void *createReactor();
-void startReactor(void *this);
-void stopReactor(void *this);
-void addFd(void *this, int fd, handler_t handler);
-void WaitFor(void *this);
+void startReactor(void *thisReactor);
+void stopReactor(void *thisReactor);
+void addFd(void *thisReactor, int fd, handler_t handler);
+void WaitFor(void *thisReactor);
 
 void signalHandler();			
 void *clientHandler(int fd, void *arg);

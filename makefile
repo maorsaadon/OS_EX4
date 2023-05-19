@@ -1,17 +1,16 @@
-CC=gcc
-FLAGS=-Wall -g -pthread -o
+CC = gcc
+CXX = g++
+FLAGS = -Wall -g -w
 
-all:reactorlib.so react_server 
+all:react_server
 
-reactorlib.so: Reactor.c 
-	$(CXX) -shared -fPIC -o Reactor.cpp cpplib.so 
+react_server: Server.c Reactor.h map.h clib.so 
+	$(CXX) $(FLAGS) Server.c map.c ./clib.so -o react_server
 
-react_server: reactorlib.so Server.c Server.h map.h
-	$(CXX) $(FLAGS) react_server Server.c map.c ./reactorlib.so
+# shared library for all the c++ code files
+clib.so: Reactor.c
+	$(CXX) $(FLAGS) --shared -fPIC Reactor.c -o clib.so -lpthread
 
 
 clean:
 	rm -f *.o *.so react_server
-	
-
-

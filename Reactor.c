@@ -34,15 +34,15 @@ void *createReactor()
 	return react;
 }
 
-void *reactorRun(void *this)
+void *reactorRun(void *thisReactor)
 {
-	if (this == NULL)
+	if (thisReactor == NULL)
 	{
 		perror("reactorRun() failed");
 		exit(-1);
 	}
 
-	preactor reactor = (preactor)this;
+	preactor reactor = (preactor)thisReactor;
 
 	while (reactor->hot)
 	{
@@ -64,13 +64,9 @@ void *reactorRun(void *this)
 					continue;
 				}
 
-				handler_t a = (handler_t)function;
-				if (a(reactor->pfds[i].fd, reactor) == -1)
-				{
-					printf("client's function failed\n");
-				}
+				handler_t handler = (handler_t)function;
+				handler(reactor->pfds[i].fd, reactor);
 			}
-		
 		}
 	}
 
@@ -79,64 +75,67 @@ void *reactorRun(void *this)
 	return reactor;
 }
 
-void startReactor(void *this)
+void startReactor(void *thisReactor)
 {
-	if (this == NULL)
+	if (thisReactor == NULL)
 	{
 		perror("startReactor() failed");
 		exit(-1);
 	}
 
-	preactor react = (preactor)this;
+	preactor react = (preactor)thisReactor;
 
 	if (react->hot)
 		return;
 	else
 	{
 		react->hot = true;
-		pthread_create(&react->thread, NULL, reactorRun, this);
+		if (pthread_create(react->thread, NULL, reactorRun, thisReactor) != 0)
+		{
+			perror("pthread_create() failed");
+		}
 		fprintf(stdout, "Reactor thread started.\n");
 	}
 }
 
-void stopReactor(void *this)
+void stopReactor(void *thisReactor)
 {
-	if (this == NULL)
+	if (thisReactor == NULL)
 	{
 		perror("stopReactor() failed");
 		exit(-1);
 	}
 
-	preactor reactor = (preactor)this;
+	preactor reactor = (preactor)thisReactor;
 
 	if (!reactor->hot)
 		return;
 
 	reactor->hot = false;
 
-	pthread_cancel(reactor->thread);
-	pthread_join(reactor->thread, NULL);
-	pthread_detach(reactor->thread);
+	pthread_cancel(*reactor->thread);
+	pthread_join(*reactor->thread, NULL);
+	pthread_detach(*reactor->thread);
 
 	fprintf(stdout, "Reactor thread stopped and detached.\n");
 }
 
-void addFd(void *this, int fd, handler_t handler)
+void addFd(void *thisReactor, int fd, handler_t handler)
 {
-	if (this == NULL)
+	if (thisReactor == NULL)
 	{
 		errno = EINVAL;
 		perror("addFd() failed");
 		return;
 	}
 
-	preactor reactor = (preactor)this;
+	preactor reactor = (preactor)thisReactor;
 
 	if (reactor->clients_counter == reactor->fd_size)
 	{
-		reactor->fd_size *= 2; // Double it
+		reactor->fd_size *= 2;
 
-		reactor->pfds = realloc(reactor->pfds, sizeof(struct pollfd) * (reactor->fd_size));
+		reactor->pfds = (struct pollfd*)realloc(reactor->pfds, sizeof(struct pollfd) * reactor->fd_size);
 
 		if (!reactor->pfds)
 		{
@@ -155,19 +154,19 @@ void addFd(void *this, int fd, handler_t handler)
 	hashmap_set(reactor->FDtoFunction, fdcpy, sizeof(int), (uintptr_t)handler);
 }
 
-void WaitFor(void *this)
+void WaitFor(void *thisReactor)
 {
-	if (this == NULL)
+	if (thisReactor == NULL)
 	{
 		perror("WaitFor() failed");
 		exit(-1);
 	}
 
-	preactor reactor = (preactor)this;
+	preactor reactor = (preactor)thisReactor;
 
 	if (!reactor->hot)
 		return;
 
 	fprintf(stdout, "Reactor thread joined.\n");
-	pthread_join(reactor->thread, NULL);
+	pthread_join(*reactor->thread, NULL);
 }
