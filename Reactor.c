@@ -12,7 +12,7 @@ void *createReactor()
 
 	react->hot = true;
 	react->clients_counter = 0;
-	react->fd_size = 4;
+	react->size = 4;
 	react->thread = (pthread_t *)calloc(1, sizeof(pthread_t));
 	react->pfds = (struct pollfd *)malloc(sizeof(struct pollfd) * 4);
 	if (!react->pfds)
@@ -107,16 +107,17 @@ void stopReactor(void *thisReactor)
 	}
 
 	preactor reactor = (preactor)thisReactor;
-
 	if (!reactor->hot)
 		return;
-
+	
 	reactor->hot = false;
-
+	
 	pthread_cancel(*reactor->thread);
+	
 	pthread_join(*reactor->thread, NULL);
+	
 	pthread_detach(*reactor->thread);
-
+	
 	fprintf(stdout, "Reactor thread stopped and detached.\n");
 }
 
@@ -124,18 +125,17 @@ void addFd(void *thisReactor, int fd, handler_t handler)
 {
 	if (thisReactor == NULL)
 	{
-		errno = EINVAL;
 		perror("addFd() failed");
-		return;
+		exit(-1);
 	}
 
 	preactor reactor = (preactor)thisReactor;
 
-	if (reactor->clients_counter == reactor->fd_size)
+	if (reactor->clients_counter == reactor->size)
 	{
-		reactor->fd_size *= 2;
+		reactor->size *= 2;
 
-		reactor->pfds = (struct pollfd*)realloc(reactor->pfds, sizeof(struct pollfd) * reactor->fd_size);
+		reactor->pfds = (struct pollfd*)realloc(reactor->pfds, sizeof(struct pollfd) * reactor->size);
 
 		if (!reactor->pfds)
 		{

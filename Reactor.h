@@ -19,18 +19,18 @@
 #include "map.h"
 
 
-#define PORT 9034
+#define PORT 5000
 #define CLIENTS 8192
 #define BUFFER_SIZE 1024
 
-typedef void *(*handler_t)(int fd, void *arg);
+typedef int (*handler_t)(int fd, void *arg);
 
 
 typedef struct reactor
 {
 	struct pollfd *pfds;
     int clients_counter;
-    int fd_size;
+    int size;
     struct hashmap *FDtoFunction;
     bool hot;
     pthread_t *thread;
@@ -43,8 +43,8 @@ void addFd(void *thisReactor, int fd, handler_t handler);
 void WaitFor(void *thisReactor);
 
 void signalHandler();			
-void *clientHandler(int fd, void *arg);
-void *serverHandler(int fd, void *arg);
+int clientHandler(int fd, void *arg);
+int serverHandler(int fd, void *arg);
 
 
 void free_entry(void *key, size_t ksize, uintptr_t value, void *usr)

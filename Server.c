@@ -11,7 +11,7 @@ int main(void)
 	signal(SIGINT, signalHandler);
 
 	// Create socket
-	int serverFd = socket(AF_INET6, SOCK_DGRAM, 0);
+	int serverFd = socket(AF_INET, SOCK_STREAM, 0);
 	if (serverFd == -1)
 	{
 		perror("Could not create socket\n");
@@ -62,7 +62,9 @@ int main(void)
 
 	startReactor(thisReactor);
 	WaitFor(thisReactor);
+	fprintf(stdout, "check5\n");
 	signalHandler();
+	fprintf(stdout, "check6\n");
 
 	return 0;
 }
@@ -78,14 +80,11 @@ void signalHandler()
 		fprintf(stdout, "Closing all sockets and freeing memory...\n");
 
 		preactor reactor = (preactor)thisReactor;
-
 		// free the hashmap
 		hashmap_iterate(reactor->FDtoFunction, free_entry, NULL);
 		hashmap_free(reactor->FDtoFunction);
-
 		// free pfds
 		free(reactor->pfds);
-
 		// free reactor
 		free(reactor);
 	}
@@ -96,7 +95,7 @@ void signalHandler()
 	exit(1);
 }
 
-void *clientHandler(int clientFd, void *arg)
+int clientHandler(int clientFd, void *arg)
 {
 	char buffer[BUFFER_SIZE] = {0};
 
@@ -112,10 +111,11 @@ void *clientHandler(int clientFd, void *arg)
 
 	fprintf(stdout, "Client %d: %s\n", clientFd, buffer);
 
-	return arg;
+	return 0;
+
 }
 
-void *serverHandler(int serverFd, void *arg)
+int serverHandler(int serverFd, void *arg)
 {
 	struct sockaddr_in clientAddress = {0};
 	socklen_t len_clientAddress = sizeof(clientAddress);
@@ -144,5 +144,5 @@ void *serverHandler(int serverFd, void *arg)
 
 	fprintf(stdout, "Client %s : %d connected, ID: %d.\n", inet_ntoa(clientAddress.sin_addr), ntohs(clientAddress.sin_port), clientFd);
 
-	return arg;
+	return 0;
 }
