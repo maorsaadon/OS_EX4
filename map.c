@@ -4,6 +4,7 @@
 //  Created by Mashpoe on 1/15/21.
 //
 
+#define __HASHMAP_REMOVABLE
 #include "map.h"
 #include <stdlib.h>
 #include <string.h>

@@ -62,9 +62,7 @@ int main(void)
 
 	startReactor(thisReactor);
 	WaitFor(thisReactor);
-	fprintf(stdout, "check5\n");
 	signalHandler();
-	fprintf(stdout, "check6\n");
 
 	return 0;
 }

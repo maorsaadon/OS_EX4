@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 
+
 #include "map.h"
 
 
@@ -33,7 +34,7 @@ typedef struct reactor
     int size;
     struct hashmap *FDtoFunction;
     bool hot;
-    pthread_t *thread;
+    pthread_t thread;
 } reactor, *preactor;
 
 void *createReactor();

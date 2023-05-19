@@ -10,10 +10,10 @@ void *createReactor()
 		exit(-1);
 	}
 
-	react->hot = true;
+	react->hot = false;
 	react->clients_counter = 0;
 	react->size = 4;
-	react->thread = (pthread_t *)calloc(1, sizeof(pthread_t));
+	react->thread = 0;
 	react->pfds = (struct pollfd *)malloc(sizeof(struct pollfd) * 4);
 	if (!react->pfds)
 	{
@@ -54,10 +54,9 @@ void *reactorRun(void *thisReactor)
 
 		for (size_t i = 0; i < reactor->clients_counter; i++)
 		{
-			uintptr_t function;
 			if (reactor->pfds[i].revents & POLLIN)
 			{
-				// calling hashmap function
+				uintptr_t function;
 				if (!hashmap_get(reactor->FDtoFunction, &reactor->pfds[i].fd, sizeof(int), &function))
 				{
 					printf("hashmap_get() failed\n");
@@ -67,6 +66,22 @@ void *reactorRun(void *thisReactor)
 				handler_t handler = (handler_t)function;
 				handler(reactor->pfds[i].fd, reactor);
 			}
+			else if (reactor->pfds[i].revents & POLLHUP || reactor->pfds[i].revents & POLLERR)
+			{
+				// Connection closed or error occurred
+				int disconnectedFd = reactor->pfds[i].fd;
+				printf("Connection closed or error occurred on fd: %d\n", disconnectedFd);
+
+				// Remove the disconnected fd from the list
+				for (size_t j = i; j < reactor->clients_counter - 1; j++)
+				{
+					reactor->pfds[j] = reactor->pfds[j + 1];
+				}
+				reactor->clients_counter--;
+
+				// Remove the fd from the hashmap
+				hashmap_remove(reactor->FDtoFunction, &disconnectedFd, sizeof(int));
+			}
 		}
 	}
 
@@ -74,6 +89,47 @@ void *reactorRun(void *thisReactor)
 
 	return reactor;
 }
+
+// void *reactorRun(void *thisReactor)
+// {
+// 	if (thisReactor == NULL)
+// 	{
+// 		perror("reactorRun() failed");
+// 		exit(-1);
+// 	}
+
+// 	preactor reactor = (preactor)thisReactor;
+
+// 	while (reactor->hot)
+// 	{
+// 		if (poll(reactor->pfds, reactor->clients_counter, 1000) == -1)
+// 		{
+// 			perror("poll() failed");
+// 			exit(-1);
+// 		}
+
+// 		for (size_t i = 0; i < reactor->clients_counter; i++)
+// 		{
+// 			uintptr_t function;
+// 			if (reactor->pfds[i].revents & POLLIN)
+// 			{
+// 				// calling hashmap function
+// 				if (!hashmap_get(reactor->FDtoFunction, &reactor->pfds[i].fd, sizeof(int), &function))
+// 				{
+// 					printf("hashmap_get() failed\n");
+// 					continue;
+// 				}
+
+// 				handler_t handler = (handler_t)function;
+// 				handler(reactor->pfds[i].fd, reactor);
+// 			}
+// 		}
+// 	}
+
+// 	fprintf(stdout, "Reactor thread finished.\n");
+
+// 	return reactor;
+// }
 
 void startReactor(void *thisReactor)
 {
@@ -90,7 +146,7 @@ void startReactor(void *thisReactor)
 	else
 	{
 		react->hot = true;
-		if (pthread_create(react->thread, NULL, reactorRun, thisReactor) != 0)
+		if (pthread_create(&react->thread, NULL, reactorRun, thisReactor) != 0)
 		{
 			perror("pthread_create() failed");
 		}
@@ -109,15 +165,15 @@ void stopReactor(void *thisReactor)
 	preactor reactor = (preactor)thisReactor;
 	if (!reactor->hot)
 		return;
-	
+
 	reactor->hot = false;
-	
-	pthread_cancel(*reactor->thread);
-	
-	pthread_join(*reactor->thread, NULL);
-	
-	pthread_detach(*reactor->thread);
-	
+
+	pthread_cancel(reactor->thread);
+
+	pthread_join(reactor->thread, NULL);
+
+	pthread_detach(reactor->thread);
+
 	fprintf(stdout, "Reactor thread stopped and detached.\n");
 }
 
@@ -135,7 +191,7 @@ void addFd(void *thisReactor, int fd, handler_t handler)
 	{
 		reactor->size *= 2;
 
-		reactor->pfds = (struct pollfd*)realloc(reactor->pfds, sizeof(struct pollfd) * reactor->size);
+		reactor->pfds = (struct pollfd *)realloc(reactor->pfds, sizeof(struct pollfd) * reactor->size);
 
 		if (!reactor->pfds)
 		{
@@ -168,5 +224,5 @@ void WaitFor(void *thisReactor)
 		return;
 
 	fprintf(stdout, "Reactor thread joined.\n");
-	pthread_join(*reactor->thread, NULL);
+	pthread_join(reactor->thread, NULL);
 }
