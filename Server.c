@@ -1,11 +1,14 @@
 #include "Reactor.h"
 #include "map.h"
 
-// The reactor pointer.
 void *thisReactor = NULL;
 int client_count = 0;
 int total_bytes = 0;
 
+// Signal handler for handling termination signals
+void signalHandler();
+
+// Main function
 int main(void)
 {
 	signal(SIGINT, signalHandler);
@@ -25,6 +28,7 @@ int main(void)
 		exit(-1);
 	}
 
+	// Set up server address
 	struct sockaddr_in serverAddress = {0};
 	serverAddress.sin_family = AF_INET;
 	serverAddress.sin_port = htons(PORT);
@@ -38,6 +42,7 @@ int main(void)
 		exit(-1);
 	}
 
+	// Start listening for incoming connections
 	int listenResult = listen(serverFd, CLIENTS);
 	if (listenResult == -1)
 	{
@@ -48,6 +53,7 @@ int main(void)
 
 	fprintf(stdout, "Server listening on port %d\n", PORT);
 
+	// Create the reactor
 	thisReactor = createReactor();
 
 	if (thisReactor == NULL)
@@ -57,9 +63,11 @@ int main(void)
 	}
 
 	fprintf(stdout, "Adding server socket to reactor...\n");
+	// Add server socket to the reactor
 	addFd(thisReactor, serverFd, serverHandler);
 	fprintf(stdout, "Server socket added to reactor.\n");
 
+	// Start the reactor
 	startReactor(thisReactor);
 	WaitFor(thisReactor);
 	signalHandler();
@@ -67,23 +75,25 @@ int main(void)
 	return 0;
 }
 
+// Signal handler function for handling termination signals
 void signalHandler()
 {
 	fprintf(stdout, "Server shutting down...\n");
 
 	if (thisReactor != NULL)
 	{
+		// Stop the reactor
 		stopReactor(thisReactor);
 
 		fprintf(stdout, "Closing all sockets and freeing memory...\n");
 
 		preactor reactor = (preactor)thisReactor;
-		// free the hashmap
+		// Free the hashmap
 		hashmap_iterate(reactor->FDtoFunction, free_entry, NULL);
 		hashmap_free(reactor->FDtoFunction);
-		// free pfds
+		// Free pfds
 		free(reactor->pfds);
-		// free reactor
+		// Free reactor
 		free(reactor);
 	}
 	else
@@ -94,10 +104,12 @@ void signalHandler()
 	exit(1);
 }
 
+// Client handler function for processing client connections
 void *clientHandler(int clientFd, void *react)
 {
 	char buffer[BUFFER_SIZE] = {0};
 
+	// Receive data from the client
 	ssize_t nbytes = recv(clientFd, buffer, sizeof(buffer), 0);
 	if (nbytes <= 0)
 	{
@@ -141,7 +153,7 @@ void *clientHandler(int clientFd, void *react)
 
 		// Remove the fd from the hashmap
 		hashmap_remove(reactor->FDtoFunction, &disconnectedFd, sizeof(int));
-		return;
+		return NULL;
 	}
 
 	total_bytes += nbytes;
@@ -171,6 +183,7 @@ void *clientHandler(int clientFd, void *react)
 	return react;
 }
 
+// Server handler function for processing server connections
 void *serverHandler(int serverFd, void *react)
 {
 	struct sockaddr_in clientAddress = {0};
@@ -184,6 +197,7 @@ void *serverHandler(int serverFd, void *react)
 		exit(-1);
 	}
 
+	// Accept incoming client connections
 	int clientFd = accept(serverFd, (struct sockaddr *)&clientAddress, &len_clientAddress);
 	if (clientFd == -1)
 	{
@@ -196,6 +210,7 @@ void *serverHandler(int serverFd, void *react)
 		printf("A new client connection accepted\n");
 	}
 
+	// Add client socket to the reactor
 	addFd(reactor, clientFd, clientHandler);
 
 	client_count++;

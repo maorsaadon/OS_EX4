@@ -24,26 +24,42 @@
 
 typedef void *(*handler_t)(int fd, void *react);
 
+// Structure to represent the reactor
 typedef struct reactor
 {
-    struct pollfd *pfds;
-    int clients_counter;
-    int size;
-    struct hashmap *FDtoFunction;
-    bool hot;
-    pthread_t thread;
+    struct pollfd *pfds;          // Array of poll file descriptors
+    int clients_counter;          // Number of active clients
+    int size;                     // Size of the pfds array
+    struct hashmap *FDtoFunction; // Hashmap to store file descriptors and their handlers
+    bool hot;                     // Flag to indicate if the reactor is active
+    pthread_t thread;             // Thread ID of the reactor thread
 } reactor, *preactor;
 
+// Function to create a new reactor
 void *createReactor();
+
+// Function to start the reactor
 void startReactor(void *thisReactor);
+
+// Function to stop the reactor
 void stopReactor(void *thisReactor);
+
+// Function to add a file descriptor and its corresponding handler to the reactor
 void addFd(void *thisReactor, int fd, handler_t handler);
+
+// Function to wait for the reactor thread to finish
 void WaitFor(void *thisReactor);
 
+// Signal handler function for handling termination signals
 void signalHandler();
+
+// Client handler function for processing client connections
 void *clientHandler(int fd, void *arg);
+
+// Server handler function for processing server connections
 void *serverHandler(int fd, void *arg);
 
+// Function to free hashmap entries
 void free_entry(void *key, size_t ksize, uintptr_t value, void *usr)
 {
     free((int *)key);

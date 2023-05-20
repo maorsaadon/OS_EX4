@@ -1,5 +1,6 @@
 #include "Reactor.h"
 
+// Function to create a new reactor
 void *createReactor()
 {
 	preactor react = NULL;
@@ -10,6 +11,7 @@ void *createReactor()
 		exit(-1);
 	}
 
+	// Initialize reactor properties
 	react->hot = false;
 	react->clients_counter = 0;
 	react->size = 4;
@@ -22,7 +24,7 @@ void *createReactor()
 		exit(-1);
 	}
 
-	// hashmap
+	// Create a hashmap to store file descriptors and their corresponding handlers
 	react->FDtoFunction = hashmap_create();
 	if (!react->FDtoFunction)
 	{
@@ -36,6 +38,7 @@ void *createReactor()
 	return react;
 }
 
+// Function to run the reactor in a separate thread
 void *reactorRun(void *thisReactor)
 {
 	if (thisReactor == NULL)
@@ -48,16 +51,19 @@ void *reactorRun(void *thisReactor)
 
 	while (reactor->hot)
 	{
+		// Perform polling on file descriptors
 		if (poll(reactor->pfds, reactor->clients_counter, 1000) == -1)
 		{
 			perror("poll() failed");
 			exit(-1);
 		}
 
+		// Process events on file descriptors
 		for (size_t i = 0; i < reactor->clients_counter; i++)
 		{
 			if (reactor->pfds[i].revents & POLLIN)
 			{
+				// Retrieve the handler associated with the file descriptor
 				uintptr_t function;
 				if (!hashmap_get(reactor->FDtoFunction, &reactor->pfds[i].fd, sizeof(int), &function))
 				{
@@ -65,6 +71,7 @@ void *reactorRun(void *thisReactor)
 					continue;
 				}
 
+				// Call the handler function
 				handler_t handler = (handler_t)function;
 				handler(reactor->pfds[i].fd, reactor);
 			}
@@ -92,6 +99,7 @@ void *reactorRun(void *thisReactor)
 	return reactor;
 }
 
+// Function to start the reactor
 void startReactor(void *thisReactor)
 {
 	if (thisReactor == NULL)
@@ -106,6 +114,7 @@ void startReactor(void *thisReactor)
 		return;
 	else
 	{
+		// Set the reactor as active and create a new thread for running the reactor
 		react->hot = true;
 		if (pthread_create(&react->thread, NULL, reactorRun, thisReactor) != 0)
 		{
@@ -116,6 +125,7 @@ void startReactor(void *thisReactor)
 	}
 }
 
+// Function to stop the reactor
 void stopReactor(void *thisReactor)
 {
 	if (thisReactor == NULL)
@@ -128,14 +138,15 @@ void stopReactor(void *thisReactor)
 	if (!reactor->hot)
 		return;
 
+	// Stop the reactor thread and wait for it to finish
 	reactor->hot = false;
-
 	pthread_cancel(reactor->thread);
 	pthread_join(reactor->thread, NULL);
 
 	fprintf(stdout, "Reactor thread stopped and detached.\n");
 }
 
+// Function to add a file descriptor and its corresponding handler to the reactor
 void addFd(void *thisReactor, int fd, handler_t handler)
 {
 	if (thisReactor == NULL)
@@ -148,10 +159,9 @@ void addFd(void *thisReactor, int fd, handler_t handler)
 
 	if (reactor->clients_counter == reactor->size)
 	{
+		// Resize the pfds array if it is full
 		reactor->size *= 2;
-
 		reactor->pfds = (struct pollfd *)realloc(reactor->pfds, sizeof(struct pollfd) * reactor->size);
-
 		if (!reactor->pfds)
 		{
 			perror("realloc() failed");
@@ -160,18 +170,21 @@ void addFd(void *thisReactor, int fd, handler_t handler)
 		}
 	}
 
+	// Add the new file descriptor and its events to the pfds array
 	reactor->pfds[reactor->clients_counter].fd = fd;
 	reactor->pfds[reactor->clients_counter].events = POLLIN;
 	reactor->clients_counter++;
 
+	// Create a copy of the file descriptor to store in the hashmap
 	int *fdcpy = (int *)malloc(sizeof(int));
 	*fdcpy = fd;
-	// add fd to hashmap
+	// Add the file descriptor and its handler to the hashmap
 	hashmap_set(reactor->FDtoFunction, fdcpy, sizeof(int), (uintptr_t)handler);
 
 	fprintf(stdout, "addFd() success.\n");
 }
 
+// Function to wait for the reactor thread to finish
 void WaitFor(void *thisReactor)
 {
 	if (thisReactor == NULL)
