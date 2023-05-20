@@ -1,4 +1,5 @@
 #include "Reactor.h"
+#include "map.h"
 
 // The reactor pointer.
 void *thisReactor = NULL;
@@ -100,7 +101,47 @@ void *clientHandler(int clientFd, void *react)
 	ssize_t nbytes = recv(clientFd, buffer, sizeof(buffer), 0);
 	if (nbytes <= 0)
 	{
-		perror("recv() failed\n");
+		if (nbytes == -1)
+			perror("recv() failed");
+
+		else
+			printf("Client disconnected\n");
+
+		close(clientFd);
+
+		preactor reactor = (preactor)react;
+		// Connection closed or error occurred
+		int disconnectedFd = clientFd;
+		int i = 0;
+		// Remove the disconnected fd from the list
+		for (size_t j = 0; j < reactor->clients_counter; j++)
+		{
+			if (reactor->pfds[j].fd == disconnectedFd)
+			{
+				i = j;
+				break;
+			}
+		}
+
+		if (i < reactor->clients_counter - 1)
+		{
+			for (size_t j = i; j < reactor->clients_counter - 1; j++)
+			{
+				reactor->pfds[j] = reactor->pfds[j + 1];
+			}
+			reactor->clients_counter--;
+		}
+
+		else
+		{
+			reactor->pfds[i].fd = -1;
+		}
+
+		reactor->clients_counter--;
+
+		// Remove the fd from the hashmap
+		hashmap_remove(reactor->FDtoFunction, &disconnectedFd, sizeof(int));
+		return;
 	}
 
 	total_bytes += nbytes;
