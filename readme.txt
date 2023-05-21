@@ -47,13 +47,4 @@ In order to run this project follow this steps:
    5. To connect to the server, use a TCP client (e.g., Telnet) and connect to localhost on port 5000.
    6. You can send messages from the client, and the server will receive and display them.
    7. To stop the server, press Ctrl+C or send a termination signal to the server process.
-  
-------- Acknowledgments -------
-
-This project utilizes a hashmap implementation based on the code available in the [c-hashmap](https://github.com/Mashpoe/c-hashmap) repository by [Mashpoe](https://github.com/Mashpoe). The hashmap data structure provides efficient storage and retrieval of file descriptors and their associated handlers in the Reactor project. We extend our gratitude to Mashpoe for their contribution.
-
-Please note that the hashmap code from the c-hashmap repository has been included in this project for convenience. It is subject to its own license terms, which can be found in the repository. We have made necessary modifications and adaptations to integrate it into the Reactor project.
-
-If you have any questions or need further information about the hashmap implementation, please refer to the original repository.
-
 

@@ -7,6 +7,7 @@
 #ifndef map_h
 #define map_h
 
+#define __HASHMAP_REMOVABLE
 #define hashmap_str_lit(str) (str), sizeof(str) - 1
 #define hashmap_static_arr(arr) (arr), sizeof(arr)
 
