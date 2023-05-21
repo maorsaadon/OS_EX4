@@ -75,22 +75,6 @@ void *reactorRun(void *thisReactor)
 				handler_t handler = (handler_t)function;
 				handler(reactor->pfds[i].fd, reactor);
 			}
-			else if (reactor->pfds[i].revents & POLLHUP || reactor->pfds[i].revents & POLLERR)
-			{
-				// Connection closed or error occurred
-				int disconnectedFd = reactor->pfds[i].fd;
-				printf("Connection closed or error occurred on fd: %d\n", disconnectedFd);
-
-				// Remove the disconnected fd from the list
-				for (size_t j = i; j < reactor->clients_counter - 1; j++)
-				{
-					reactor->pfds[j] = reactor->pfds[j + 1];
-				}
-				reactor->clients_counter--;
-
-				// Remove the fd from the hashmap
-				hashmap_remove(reactor->FDtoFunction, &disconnectedFd, sizeof(int));
-			}
 		}
 	}
 
@@ -156,8 +140,16 @@ void addFd(void *thisReactor, int fd, handler_t handler)
 	}
 
 	preactor reactor = (preactor)thisReactor;
+	int i = reactor->clients_counter;
+	for (size_t j = 0; j < reactor->size - 1; j++)
+	{
+		if (reactor->pfds[j].fd == -1)
+		{
+			i = j;
+		}
+	}
 
-	if (reactor->clients_counter == reactor->size)
+	if (i == reactor->size)
 	{
 		// Resize the pfds array if it is full
 		reactor->size *= 2;
@@ -171,10 +163,9 @@ void addFd(void *thisReactor, int fd, handler_t handler)
 	}
 
 	// Add the new file descriptor and its events to the pfds array
-	reactor->pfds[reactor->clients_counter].fd = fd;
-	reactor->pfds[reactor->clients_counter].events = POLLIN;
+	reactor->pfds[i].fd = fd;
+	reactor->pfds[i].events = POLLIN;
 	reactor->clients_counter++;
-
 	// Create a copy of the file descriptor to store in the hashmap
 	int *fdcpy = (int *)malloc(sizeof(int));
 	*fdcpy = fd;
