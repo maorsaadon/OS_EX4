@@ -18,7 +18,7 @@
 
 #include "map.h"
 
-#define PORT 5000
+#define PORT 9034
 #define CLIENTS 8192
 #define BUFFER_SIZE 1024
 

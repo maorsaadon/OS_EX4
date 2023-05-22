@@ -43,8 +43,8 @@ In order to run this project follow this steps:
    1. Export shared libraries: export LD_LIBRARY_PATH="."  
    2. Execute "make all"
    3. Run the server: ./reactor-server
-   4. The server is now running and listening for incoming client connections on port 5000.
-   5. To connect to the server, use a TCP client (e.g., Telnet) and connect to localhost on port 5000.
+   4. The server is now running and listening for incoming client connections on port 9034.
+   5. To connect to the server, use a TCP client (e.g., Telnet) and connect to localhost on port 9034.
    6. You can send messages from the client, and the server will receive and display them.
    7. To stop the server, press Ctrl+C or send a termination signal to the server process.
 
